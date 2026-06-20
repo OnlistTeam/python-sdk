@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "onlist"
+version = "0.1.0"
+description = "Official Python SDK for Onlist, the AI API marketplace. Access GPT, Claude, Gemini, DeepSeek and 40+ models through one OpenAI-compatible API."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [{ name = "Onlist", email = "dev@onlist.io" }]
+keywords = [
+    "onlist",
+    "ai",
+    "api",
+    "llm",
+    "openai",
+    "anthropic",
+    "claude",
+    "gpt",
+    "gemini",
+    "deepseek",
+    "marketplace",
+    "sdk",
+    "ai-gateway",
+    "ai-api",
+    "model-router",
+    "llm-proxy",
+    "openrouter",
+    "chat-completion",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "openai>=1.0.0",
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0",
+]
+
+[project.urls]
+Homepage = "https://onlist.io"
+Documentation = "https://onlist.io/docs"
+Repository = "https://github.com/OnlistTeam/onlist-python"
+"API Reference" = "https://onlist.io/docs/api"
+"Model Catalog" = "https://onlist.io/models"
+"Provider Directory" = "https://onlist.io/providers"
+Changelog = "https://github.com/OnlistTeam/onlist-python/releases"
+Issues = "https://github.com/OnlistTeam/onlist-python/issues"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "mypy>=1.10",
+    "ruff>=0.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/onlist"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+strict = true
+packages = ["onlist"]
+mypy_path = "src"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
