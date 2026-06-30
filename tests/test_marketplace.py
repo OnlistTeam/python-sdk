@@ -10,7 +10,6 @@ from onlist.types.model import Model, ModelListResponse
 from onlist.types.provider import ProviderListResponse
 from onlist.types.rankings import AppListResponse, ModelRankingsResponse
 
-
 MOCK_MODELS_RESPONSE = {
     "success": True,
     "data": {
@@ -268,7 +267,13 @@ class TestMarketplaceErrors:
         respx.get("https://onlist.io/api/mkt/providers").mock(
             return_value=httpx.Response(
                 401,
-                json={"error": {"message": "invalid token", "type": "onlist_error", "code": "invalid_token"}},
+                json={
+                    "error": {
+                        "message": "invalid token",
+                        "type": "onlist_error",
+                        "code": "invalid_token",
+                    }
+                },
             )
         )
         with pytest.raises(AuthenticationError):

@@ -10,12 +10,11 @@ import httpx
 from onlist._exceptions import _raise_for_status
 from onlist._version import __version__
 from onlist.types.model import ModelDetail, ModelListResponse
-from onlist.types.provider import Provider, ProviderDetail, ProviderListResponse
+from onlist.types.provider import ProviderDetail, ProviderListResponse
 from onlist.types.rankings import (
     AppListResponse,
     ModelRankingsResponse,
 )
-
 
 _DEFAULT_TIMEOUT = 30.0
 _DEFAULT_MAX_RETRIES = 2
