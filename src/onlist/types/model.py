@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from pydantic import BaseModel, Field
 
 
@@ -58,16 +56,7 @@ class ProviderOffer(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class ModelDetail(BaseModel):
-    id: str
-    name: str | None = None
-    author: str | None = None
-    owned_by: str | None = None
-    context_length: int | None = None
-    max_output_length: int | None = None
-    architecture: Architecture | None = None
-    pricing: Pricing | None = None
-    description: str | None = None
+class ModelDetail(Model):
     providers: list[ProviderOffer] = Field(default_factory=list)
 
     model_config = {"extra": "allow"}
@@ -76,7 +65,7 @@ class ModelDetail(BaseModel):
 class ModelListResponse(BaseModel):
     """Response from ``marketplace.models.list()``."""
 
-    data: list[dict[str, Any]] = Field(default_factory=list)
+    data: list[Model] = Field(default_factory=list)
     total: int | None = None
     offset: int | None = None
     limit: int | None = None

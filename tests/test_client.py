@@ -26,6 +26,7 @@ class TestOnlistClient:
         assert hasattr(client, "marketplace")
         assert hasattr(client.marketplace, "models")
         assert hasattr(client.marketplace, "providers")
+        assert hasattr(client.marketplace, "rankings")
 
     def test_marketplace_base_url_derived(self, client: Onlist) -> None:
         mkt_base = client.marketplace._client.base_url
@@ -46,3 +47,4 @@ class TestAsyncOnlistClient:
         assert hasattr(c, "marketplace")
         assert hasattr(c.marketplace, "models")
         assert hasattr(c.marketplace, "providers")
+        assert hasattr(c.marketplace, "rankings")

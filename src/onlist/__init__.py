@@ -5,20 +5,27 @@ from onlist._exceptions import (
     APIError,
     AuthenticationError,
     InsufficientBalanceError,
+    NotFoundError,
     OnlistError,
     ProviderError,
     RateLimitError,
 )
 from onlist._version import __version__
 from onlist.types import (
+    AppEntry,
+    AppListResponse,
+    ChartPoint,
     MaxPrice,
     Model,
     ModelDetail,
     ModelListResponse,
+    ModelRankingEntry,
+    ModelRankingsResponse,
     Pricing,
     Provider,
     ProviderDetail,
     ProviderListResponse,
+    ProviderOffer,
     ProviderRouting,
 )
 
@@ -30,18 +37,28 @@ __all__ = [
     "APIError",
     "AuthenticationError",
     "InsufficientBalanceError",
+    "NotFoundError",
     "OnlistError",
     "ProviderError",
     "RateLimitError",
-    # Types
-    "MaxPrice",
+    # Types — Models
     "Model",
     "ModelDetail",
     "ModelListResponse",
     "Pricing",
+    "ProviderOffer",
+    # Types — Providers
     "Provider",
     "ProviderDetail",
     "ProviderListResponse",
+    # Types — Rankings
+    "AppEntry",
+    "AppListResponse",
+    "ChartPoint",
+    "ModelRankingEntry",
+    "ModelRankingsResponse",
+    # Types — Routing
+    "MaxPrice",
     "ProviderRouting",
     # Meta
     "__version__",

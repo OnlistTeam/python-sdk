@@ -18,6 +18,11 @@ class Onlist(openai.OpenAI):
     ``images``, ``audio``, ``models``) work identically. The ``marketplace``
     attribute provides access to Onlist-specific APIs.
 
+    Supports use as a context manager::
+
+        with Onlist(api_key="sk-...") as client:
+            response = client.chat.completions.create(...)
+
     Example::
 
         from onlist import Onlist
@@ -42,6 +47,7 @@ class Onlist(openai.OpenAI):
         api_key: str | None = None,
         base_url: str | httpx.URL | None = None,
         default_headers: Mapping[str, str] | None = None,
+        max_retries: int = 2,
         **kwargs: Any,
     ) -> None:
         resolved_key = api_key or os.environ.get(ENV_API_KEY)
@@ -63,15 +69,27 @@ class Onlist(openai.OpenAI):
         self.marketplace = Marketplace(
             api_key=effective_key,
             base_url=marketplace_base or MARKETPLACE_BASE_URL,
+            max_retries=max_retries,
         )
 
     def close(self) -> None:
         super().close()
         self.marketplace.close()
 
+    def __enter__(self) -> Onlist:
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        self.close()
+
 
 class AsyncOnlist(openai.AsyncOpenAI):
     """Async Onlist API client. Drop-in replacement for ``openai.AsyncOpenAI``.
+
+    Supports use as an async context manager::
+
+        async with AsyncOnlist(api_key="sk-...") as client:
+            response = await client.chat.completions.create(...)
 
     Example::
 
@@ -97,6 +115,7 @@ class AsyncOnlist(openai.AsyncOpenAI):
         api_key: str | None = None,
         base_url: str | httpx.URL | None = None,
         default_headers: Mapping[str, str] | None = None,
+        max_retries: int = 2,
         **kwargs: Any,
     ) -> None:
         resolved_key = api_key or os.environ.get(ENV_API_KEY)
@@ -118,8 +137,15 @@ class AsyncOnlist(openai.AsyncOpenAI):
         self.marketplace = AsyncMarketplace(
             api_key=effective_key,
             base_url=marketplace_base or MARKETPLACE_BASE_URL,
+            max_retries=max_retries,
         )
 
     async def close(self) -> None:
         await super().close()
         await self.marketplace.close()
+
+    async def __aenter__(self) -> AsyncOnlist:
+        return self
+
+    async def __aexit__(self, *args: Any) -> None:
+        await self.close()

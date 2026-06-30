@@ -43,6 +43,38 @@ The client reads your API key from:
 export ONLIST_API_KEY="sk-..."
 ```
 
+## Context Manager
+
+Both sync and async clients support use as context managers, which ensures
+the underlying HTTP connections are properly closed:
+
+```python
+from onlist import Onlist
+
+with Onlist(api_key="sk-...") as client:
+    response = client.chat.completions.create(
+        model="anthropic/claude-sonnet-4",
+        messages=[{"role": "user", "content": "Hello!"}],
+    )
+    print(response.choices[0].message.content)
+# Connections are automatically closed here
+```
+
+```python
+import asyncio
+from onlist import AsyncOnlist
+
+async def main():
+    async with AsyncOnlist(api_key="sk-...") as client:
+        response = await client.chat.completions.create(
+            model="openai/gpt-4o",
+            messages=[{"role": "user", "content": "Hello!"}],
+        )
+        print(response.choices[0].message.content)
+
+asyncio.run(main())
+```
+
 ## Provider Routing
 
 Onlist's marketplace lets you choose which provider serves your request.
@@ -140,7 +172,7 @@ client = Onlist(api_key="sk-...")
 # List available models with pricing
 models = client.marketplace.models.list(limit=10)
 for m in models.data:
-    print(f"{m['id']} - input: {m.get('pricing', {}).get('prompt', 'N/A')}")
+    print(f"{m.id} - input: {m.pricing.prompt if m.pricing else 'N/A'}")
 
 # Get detailed model info with all provider offers
 detail = client.marketplace.models.get("anthropic/claude-sonnet-4")
@@ -154,6 +186,37 @@ for p in providers.data:
 # Get a specific provider's profile
 provider = client.marketplace.providers.get("alice-shop")
 print(f"{provider.display_name} - {provider.model_count} models")
+```
+
+## Rankings API
+
+View model usage rankings and app usage data:
+
+```python
+from onlist import Onlist
+
+client = Onlist(api_key="sk-...")
+
+# Model usage leaderboard
+rankings = client.marketplace.rankings.models(sort="popular", window="week")
+for entry in rankings.leaderboard:
+    print(f"#{entry.rank} {entry.model_name} by {entry.author} - {entry.total_tokens} tokens")
+
+# Trending models
+trending = client.marketplace.rankings.models(sort="trending", window="month")
+for entry in trending.leaderboard:
+    if entry.growth_pct is not None:
+        print(f"{entry.model_name}: +{entry.growth_pct:.1f}%")
+
+# App usage rankings
+apps = client.marketplace.rankings.apps(sort="popular", window="month")
+for app in apps.apps:
+    print(f"#{app.rank} {app.title} ({app.domain}) - {app.total_requests} requests")
+
+# Filter by category
+coding_apps = client.marketplace.rankings.apps(category="coding")
+for app in coding_apps.apps:
+    print(f"{app.title}: {app.categories}")
 ```
 
 ## Other APIs
@@ -207,16 +270,29 @@ For marketplace API calls (`client.marketplace.*`), Onlist-specific exceptions
 are raised:
 
 ```python
-from onlist import Onlist, AuthenticationError, APIError
+from onlist import Onlist, AuthenticationError, NotFoundError, APIError
 
 client = Onlist(api_key="sk-...")
 
 try:
-    providers = client.marketplace.providers.list()
+    detail = client.marketplace.models.get("nonexistent/model")
+except NotFoundError:
+    print("Model not found")
 except AuthenticationError:
     print("Invalid API key for marketplace")
 except APIError as e:
     print(f"API error {e.status_code}: {e.message}")
+```
+
+Marketplace requests are automatically retried on transient errors (408, 429, 5xx)
+with exponential backoff. Configure the retry limit:
+
+```python
+# Disable retries
+client = Onlist(api_key="sk-...", max_retries=0)
+
+# More retries
+client = Onlist(api_key="sk-...", max_retries=5)
 ```
 
 ## Migrate from OpenAI or OpenRouter

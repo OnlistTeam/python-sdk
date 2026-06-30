@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+import time
 from typing import Any
 from urllib.parse import quote
 
@@ -9,9 +11,18 @@ from onlist._exceptions import _raise_for_status
 from onlist._version import __version__
 from onlist.types.model import ModelDetail, ModelListResponse
 from onlist.types.provider import Provider, ProviderDetail, ProviderListResponse
+from onlist.types.rankings import (
+    AppListResponse,
+    ModelRankingsResponse,
+)
 
 
 _DEFAULT_TIMEOUT = 30.0
+_DEFAULT_MAX_RETRIES = 2
+_RETRY_INITIAL_DELAY = 0.5
+_RETRY_MAX_DELAY = 8.0
+_RETRY_JITTER = 0.25
+_RETRYABLE_STATUS_CODES = frozenset({408, 429, 500, 502, 503, 504})
 
 
 def _default_headers(api_key: str | None) -> dict[str, str]:
@@ -42,11 +53,36 @@ def _parse_response(response: httpx.Response) -> Any:
     return body
 
 
+def _retry_delay(attempt: int, response: httpx.Response | None = None) -> float:
+    """Compute retry delay with exponential backoff, jitter, and Retry-After support."""
+    if response is not None:
+        retry_after = response.headers.get("Retry-After")
+        if retry_after is not None:
+            try:
+                return max(0.0, float(retry_after))
+            except ValueError:
+                pass
+
+    delay = min(_RETRY_INITIAL_DELAY * (2 ** attempt), _RETRY_MAX_DELAY)
+    jitter = delay * _RETRY_JITTER * (2 * random.random() - 1)
+    return max(0.0, delay + jitter)
+
+
+def _should_retry(status_code: int) -> bool:
+    return status_code in _RETRYABLE_STATUS_CODES
+
+
+# ---------------------------------------------------------------------------
+# Sync resource classes
+# ---------------------------------------------------------------------------
+
+
 class MarketplaceModels:
     """Query the Onlist model catalog."""
 
-    def __init__(self, client: httpx.Client) -> None:
+    def __init__(self, client: httpx.Client, max_retries: int) -> None:
         self._client = client
+        self._max_retries = max_retries
 
     def list(
         self,
@@ -65,7 +101,8 @@ class MarketplaceModels:
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if q:
             params["q"] = q
-        resp = self._client.get("/api/mkt/models", params=params)
+        resp = _sync_request(self._client, "GET", "/api/mkt/models", params=params,
+                             max_retries=self._max_retries)
         return ModelListResponse.model_validate(_parse_response(resp))
 
     def get(self, model_id: str) -> ModelDetail:
@@ -74,7 +111,9 @@ class MarketplaceModels:
         Args:
             model_id: Model identifier, e.g. ``"anthropic/claude-sonnet-4-6"``.
         """
-        resp = self._client.get(f"/api/mkt/models/{_encode_path(model_id)}")
+        resp = _sync_request(self._client, "GET",
+                             f"/api/mkt/models/{_encode_path(model_id)}",
+                             max_retries=self._max_retries)
         data = _parse_response(resp)
         if isinstance(data, dict) and "data" in data:
             data = data["data"]
@@ -84,8 +123,9 @@ class MarketplaceModels:
 class MarketplaceProviders:
     """Query provider (seller) profiles."""
 
-    def __init__(self, client: httpx.Client) -> None:
+    def __init__(self, client: httpx.Client, max_retries: int) -> None:
         self._client = client
+        self._max_retries = max_retries
 
     def list(
         self,
@@ -104,7 +144,8 @@ class MarketplaceProviders:
             params["sort"] = sort
         if q:
             params["q"] = q
-        resp = self._client.get("/api/mkt/providers", params=params)
+        resp = _sync_request(self._client, "GET", "/api/mkt/providers", params=params,
+                             max_retries=self._max_retries)
         return ProviderListResponse.model_validate(_parse_response(resp))
 
     def get(self, slug: str) -> ProviderDetail:
@@ -113,22 +154,98 @@ class MarketplaceProviders:
         Args:
             slug: Provider slug, e.g. ``"alice-shop"``.
         """
-        resp = self._client.get(f"/api/mkt/provider/{_encode_path(slug)}")
+        resp = _sync_request(self._client, "GET",
+                             f"/api/mkt/provider/{_encode_path(slug)}",
+                             max_retries=self._max_retries)
         data = _parse_response(resp)
         if isinstance(data, dict) and "data" in data:
             data = data["data"]
         return ProviderDetail.model_validate(data)
 
 
+class MarketplaceRankings:
+    """Query model usage rankings and app rankings."""
+
+    def __init__(self, client: httpx.Client, max_retries: int) -> None:
+        self._client = client
+        self._max_retries = max_retries
+
+    def models(
+        self,
+        *,
+        sort: str = "popular",
+        window: str = "week",
+        limit: int = 20,
+        offset: int = 0,
+    ) -> ModelRankingsResponse:
+        """Get the model usage leaderboard with chart data.
+
+        Args:
+            sort: ``"popular"`` (absolute usage) or ``"trending"`` (growth rate).
+            window: Time window: ``"day"``, ``"week"``, or ``"month"``.
+            limit: Maximum leaderboard entries.
+            offset: Number of entries to skip.
+        """
+        params: dict[str, Any] = {
+            "sort": sort,
+            "window": window,
+            "limit": limit,
+            "offset": offset,
+        }
+        resp = _sync_request(self._client, "GET", "/api/mkt/rankings/models",
+                             params=params, max_retries=self._max_retries)
+        return ModelRankingsResponse.model_validate(_parse_response(resp))
+
+    def apps(
+        self,
+        *,
+        sort: str = "popular",
+        window: str = "month",
+        category: str | None = None,
+        subcategory: str | None = None,
+        page: int = 1,
+        limit: int = 20,
+    ) -> AppListResponse:
+        """Get the app usage rankings.
+
+        Args:
+            sort: ``"popular"`` or ``"trending"``.
+            window: ``"day"``, ``"week"``, or ``"month"``.
+            category: Filter by category group.
+            subcategory: Filter by subcategory (takes priority over ``category``).
+            page: Page number (1-based).
+            limit: Results per page (max 100).
+        """
+        params: dict[str, Any] = {
+            "sort": sort,
+            "window": window,
+            "page": page,
+            "limit": limit,
+        }
+        if subcategory:
+            params["subcategory"] = subcategory
+        elif category:
+            params["category"] = category
+        resp = _sync_request(self._client, "GET", "/api/mkt/apps", params=params,
+                             max_retries=self._max_retries)
+        return AppListResponse.model_validate(_parse_response(resp))
+
+
 class Marketplace:
     """Access Onlist marketplace data.
 
     Provides read-only access to the public marketplace APIs:
-    model catalog, provider directory, and more.
+    model catalog, provider directory, rankings, and more.
+
+    Supports use as a context manager::
+
+        with Marketplace(api_key="sk-...", base_url="https://onlist.io") as mkt:
+            models = mkt.models.list()
     """
 
     models: MarketplaceModels
     providers: MarketplaceProviders
+    rankings: MarketplaceRankings
 
     def __init__(
         self,
@@ -136,17 +253,67 @@ class Marketplace:
         api_key: str | None = None,
         base_url: str,
         timeout: float = _DEFAULT_TIMEOUT,
+        max_retries: int = _DEFAULT_MAX_RETRIES,
     ) -> None:
         self._client = httpx.Client(
             base_url=base_url,
             headers=_default_headers(api_key),
             timeout=timeout,
         )
-        self.models = MarketplaceModels(self._client)
-        self.providers = MarketplaceProviders(self._client)
+        self.models = MarketplaceModels(self._client, max_retries)
+        self.providers = MarketplaceProviders(self._client, max_retries)
+        self.rankings = MarketplaceRankings(self._client, max_retries)
 
     def close(self) -> None:
         self._client.close()
+
+    def __enter__(self) -> Marketplace:
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        self.close()
+
+
+# ---------------------------------------------------------------------------
+# Retry helper (sync)
+# ---------------------------------------------------------------------------
+
+
+def _sync_request(
+    client: httpx.Client,
+    method: str,
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+    max_retries: int = _DEFAULT_MAX_RETRIES,
+) -> httpx.Response:
+    """Execute an HTTP request with retry logic (exponential backoff + jitter)."""
+    last_response: httpx.Response | None = None
+    last_exc: Exception | None = None
+
+    for attempt in range(1 + max_retries):
+        try:
+            response = client.request(method, url, params=params)
+        except (httpx.ConnectError, httpx.ReadError, httpx.WriteError,
+                httpx.PoolTimeout, httpx.ConnectTimeout) as exc:
+            last_exc = exc
+            if attempt < max_retries:
+                time.sleep(_retry_delay(attempt))
+                continue
+            raise
+
+        if not _should_retry(response.status_code) or attempt >= max_retries:
+            return response
+
+        last_response = response
+        time.sleep(_retry_delay(attempt, response))
+
+    # Should not reach here, but satisfy the type checker.
+    if last_response is not None:
+        return last_response
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("unexpected retry loop exit")
 
 
 # ---------------------------------------------------------------------------
@@ -155,8 +322,9 @@ class Marketplace:
 
 
 class AsyncMarketplaceModels:
-    def __init__(self, client: httpx.AsyncClient) -> None:
+    def __init__(self, client: httpx.AsyncClient, max_retries: int) -> None:
         self._client = client
+        self._max_retries = max_retries
 
     async def list(
         self,
@@ -168,11 +336,14 @@ class AsyncMarketplaceModels:
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if q:
             params["q"] = q
-        resp = await self._client.get("/api/mkt/models", params=params)
+        resp = await _async_request(self._client, "GET", "/api/mkt/models",
+                                    params=params, max_retries=self._max_retries)
         return ModelListResponse.model_validate(_parse_response(resp))
 
     async def get(self, model_id: str) -> ModelDetail:
-        resp = await self._client.get(f"/api/mkt/models/{_encode_path(model_id)}")
+        resp = await _async_request(self._client, "GET",
+                                    f"/api/mkt/models/{_encode_path(model_id)}",
+                                    max_retries=self._max_retries)
         data = _parse_response(resp)
         if isinstance(data, dict) and "data" in data:
             data = data["data"]
@@ -180,8 +351,9 @@ class AsyncMarketplaceModels:
 
 
 class AsyncMarketplaceProviders:
-    def __init__(self, client: httpx.AsyncClient) -> None:
+    def __init__(self, client: httpx.AsyncClient, max_retries: int) -> None:
         self._client = client
+        self._max_retries = max_retries
 
     async def list(
         self,
@@ -194,22 +366,80 @@ class AsyncMarketplaceProviders:
             params["sort"] = sort
         if q:
             params["q"] = q
-        resp = await self._client.get("/api/mkt/providers", params=params)
+        resp = await _async_request(self._client, "GET", "/api/mkt/providers",
+                                    params=params, max_retries=self._max_retries)
         return ProviderListResponse.model_validate(_parse_response(resp))
 
     async def get(self, slug: str) -> ProviderDetail:
-        resp = await self._client.get(f"/api/mkt/provider/{_encode_path(slug)}")
+        resp = await _async_request(self._client, "GET",
+                                    f"/api/mkt/provider/{_encode_path(slug)}",
+                                    max_retries=self._max_retries)
         data = _parse_response(resp)
         if isinstance(data, dict) and "data" in data:
             data = data["data"]
         return ProviderDetail.model_validate(data)
 
 
+class AsyncMarketplaceRankings:
+    def __init__(self, client: httpx.AsyncClient, max_retries: int) -> None:
+        self._client = client
+        self._max_retries = max_retries
+
+    async def models(
+        self,
+        *,
+        sort: str = "popular",
+        window: str = "week",
+        limit: int = 20,
+        offset: int = 0,
+    ) -> ModelRankingsResponse:
+        params: dict[str, Any] = {
+            "sort": sort,
+            "window": window,
+            "limit": limit,
+            "offset": offset,
+        }
+        resp = await _async_request(self._client, "GET", "/api/mkt/rankings/models",
+                                    params=params, max_retries=self._max_retries)
+        return ModelRankingsResponse.model_validate(_parse_response(resp))
+
+    async def apps(
+        self,
+        *,
+        sort: str = "popular",
+        window: str = "month",
+        category: str | None = None,
+        subcategory: str | None = None,
+        page: int = 1,
+        limit: int = 20,
+    ) -> AppListResponse:
+        params: dict[str, Any] = {
+            "sort": sort,
+            "window": window,
+            "page": page,
+            "limit": limit,
+        }
+        if subcategory:
+            params["subcategory"] = subcategory
+        elif category:
+            params["category"] = category
+        resp = await _async_request(self._client, "GET", "/api/mkt/apps",
+                                    params=params, max_retries=self._max_retries)
+        return AppListResponse.model_validate(_parse_response(resp))
+
+
 class AsyncMarketplace:
-    """Async version of :class:`Marketplace`."""
+    """Async version of :class:`Marketplace`.
+
+    Supports use as an async context manager::
+
+        async with AsyncMarketplace(api_key="sk-...", base_url="https://onlist.io") as mkt:
+            models = await mkt.models.list()
+    """
 
     models: AsyncMarketplaceModels
     providers: AsyncMarketplaceProviders
+    rankings: AsyncMarketplaceRankings
 
     def __init__(
         self,
@@ -217,14 +447,65 @@ class AsyncMarketplace:
         api_key: str | None = None,
         base_url: str,
         timeout: float = _DEFAULT_TIMEOUT,
+        max_retries: int = _DEFAULT_MAX_RETRIES,
     ) -> None:
         self._client = httpx.AsyncClient(
             base_url=base_url,
             headers=_default_headers(api_key),
             timeout=timeout,
         )
-        self.models = AsyncMarketplaceModels(self._client)
-        self.providers = AsyncMarketplaceProviders(self._client)
+        self.models = AsyncMarketplaceModels(self._client, max_retries)
+        self.providers = AsyncMarketplaceProviders(self._client, max_retries)
+        self.rankings = AsyncMarketplaceRankings(self._client, max_retries)
 
     async def close(self) -> None:
         await self._client.aclose()
+
+    async def __aenter__(self) -> AsyncMarketplace:
+        return self
+
+    async def __aexit__(self, *args: Any) -> None:
+        await self.close()
+
+
+# ---------------------------------------------------------------------------
+# Retry helper (async)
+# ---------------------------------------------------------------------------
+
+
+async def _async_request(
+    client: httpx.AsyncClient,
+    method: str,
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+    max_retries: int = _DEFAULT_MAX_RETRIES,
+) -> httpx.Response:
+    """Execute an async HTTP request with retry logic."""
+    import asyncio
+
+    last_response: httpx.Response | None = None
+    last_exc: Exception | None = None
+
+    for attempt in range(1 + max_retries):
+        try:
+            response = await client.request(method, url, params=params)
+        except (httpx.ConnectError, httpx.ReadError, httpx.WriteError,
+                httpx.PoolTimeout, httpx.ConnectTimeout) as exc:
+            last_exc = exc
+            if attempt < max_retries:
+                await asyncio.sleep(_retry_delay(attempt))
+                continue
+            raise
+
+        if not _should_retry(response.status_code) or attempt >= max_retries:
+            return response
+
+        last_response = response
+        await asyncio.sleep(_retry_delay(attempt, response))
+
+    if last_response is not None:
+        return last_response
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("unexpected retry loop exit")

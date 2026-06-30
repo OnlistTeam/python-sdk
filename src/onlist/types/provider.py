@@ -30,27 +30,8 @@ class Provider(BaseModel):
     model_config = {"extra": "allow"}
 
 
-class ProviderDetail(BaseModel):
-    id: int | None = None
-    slug: str
-    name: str | None = None
-    display_name: str | None = None
-    description: str | None = None
-    logo_url: str | None = None
-    listing_count: int | None = None
-    follower_count: int | None = None
-    weighted_score: float | None = None
-    max_rpm: int | None = None
-    availability_7d: float | None = None
+class ProviderDetail(Provider):
     listings: list[dict[str, Any]] = Field(default_factory=list)
-
-    @property
-    def score(self) -> float | None:
-        return self.weighted_score
-
-    @property
-    def model_count(self) -> int | None:
-        return self.listing_count
 
     model_config = {"extra": "allow"}
 

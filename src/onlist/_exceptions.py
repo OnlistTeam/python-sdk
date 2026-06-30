@@ -61,6 +61,14 @@ class InsufficientBalanceError(APIError):
         super().__init__(message, **kwargs)
 
 
+class NotFoundError(APIError):
+    """Raised on 404 responses (resource not found)."""
+
+    def __init__(self, message: str = "Resource not found", **kwargs: Any) -> None:
+        kwargs.setdefault("status_code", 404)
+        super().__init__(message, **kwargs)
+
+
 class RateLimitError(APIError):
     """Raised on 429 responses (rate limited)."""
 
@@ -98,6 +106,8 @@ def _raise_for_status(status_code: int, body: Any) -> None:
         raise AuthenticationError(message, **kwargs)
     if status_code == 402:
         raise InsufficientBalanceError(message, **kwargs)
+    if status_code == 404:
+        raise NotFoundError(message, **kwargs)
     if status_code == 429:
         raise RateLimitError(message, **kwargs)
     if code and code.startswith("no_provider"):
