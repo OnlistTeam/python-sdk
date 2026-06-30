@@ -50,7 +50,7 @@ class Onlist(openai.OpenAI):
         max_retries: int = 2,
         **kwargs: Any,
     ) -> None:
-        resolved_key = api_key or os.environ.get(ENV_API_KEY)
+        resolved_key = api_key or os.environ.get(ENV_API_KEY) or os.environ.get("OPENAI_API_KEY")
 
         merged_headers = dict(default_headers or {})
         merged_headers.setdefault("User-Agent", f"onlist-python/{__version__}")
@@ -118,7 +118,7 @@ class AsyncOnlist(openai.AsyncOpenAI):
         max_retries: int = 2,
         **kwargs: Any,
     ) -> None:
-        resolved_key = api_key or os.environ.get(ENV_API_KEY)
+        resolved_key = api_key or os.environ.get(ENV_API_KEY) or os.environ.get("OPENAI_API_KEY")
 
         merged_headers = dict(default_headers or {})
         merged_headers.setdefault("User-Agent", f"onlist-python/{__version__}")
