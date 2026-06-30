@@ -8,7 +8,7 @@ with one line of code.
 
 [![PyPI version](https://img.shields.io/pypi/v/onlist.svg)](https://pypi.org/project/onlist/)
 [![Python versions](https://img.shields.io/pypi/pyversions/onlist.svg)](https://pypi.org/project/onlist/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/OnlistTeam/onlist-python/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/OnlistTeam/python-sdk/blob/main/LICENSE)
 
 ## Installation
 
@@ -266,4 +266,4 @@ print(response.choices[0].message.content)
 - [API Documentation](https://onlist.io/docs)
 - [Model Catalog](https://onlist.io/models)
 - [Provider Directory](https://onlist.io/providers)
-- [GitHub](https://github.com/OnlistTeam/onlist-python)
+- [GitHub](https://github.com/OnlistTeam/python-sdk)

@@ -53,12 +53,12 @@ dependencies = [
 [project.urls]
 Homepage = "https://onlist.io"
 Documentation = "https://onlist.io/docs"
-Repository = "https://github.com/OnlistTeam/onlist-python"
+Repository = "https://github.com/OnlistTeam/python-sdk"
 "API Reference" = "https://onlist.io/docs/api"
 "Model Catalog" = "https://onlist.io/models"
 "Provider Directory" = "https://onlist.io/providers"
-Changelog = "https://github.com/OnlistTeam/onlist-python/releases"
-Issues = "https://github.com/OnlistTeam/onlist-python/issues"
+Changelog = "https://github.com/OnlistTeam/python-sdk/releases"
+Issues = "https://github.com/OnlistTeam/python-sdk/issues"
 
 [dependency-groups]
 dev = [
