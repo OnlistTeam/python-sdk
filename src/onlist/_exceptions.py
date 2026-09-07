@@ -12,11 +12,17 @@ class OnlistError(Exception):
 
 
 class APIError(OnlistError):
-    """An error returned by the Onlist API."""
+    """An error returned by the Onlist API.
+
+    ``code`` is whatever the server put in the error body. The marketplace
+    face uses string codes (``"no_provider_available"``); the OpenRouter
+    compatible account face uses the HTTP status as an integer. Both are
+    surfaced as-is rather than normalised, so callers can branch on either.
+    """
 
     status_code: int
     type: str | None
-    code: str | None
+    code: str | int | None
     param: str | None
 
     def __init__(
@@ -25,7 +31,7 @@ class APIError(OnlistError):
         *,
         status_code: int,
         type: str | None = None,
-        code: str | None = None,
+        code: str | int | None = None,
         param: str | None = None,
         body: Any = None,
     ) -> None:
@@ -50,6 +56,27 @@ class AuthenticationError(APIError):
 
     def __init__(self, message: str = "Invalid API key", **kwargs: Any) -> None:
         kwargs.setdefault("status_code", 401)
+        super().__init__(message, **kwargs)
+
+
+class BadRequestError(APIError):
+    """Raised on 400 responses (malformed or rejected parameters)."""
+
+    def __init__(self, message: str = "Bad request", **kwargs: Any) -> None:
+        kwargs.setdefault("status_code", 400)
+        super().__init__(message, **kwargs)
+
+
+class PermissionDeniedError(APIError):
+    """Raised on 403 responses.
+
+    Most commonly: an inference key (``sk-…``) was used on an endpoint that
+    only accepts a management key (``mgmt_…``). The server's message is
+    passed through unchanged.
+    """
+
+    def __init__(self, message: str = "Permission denied", **kwargs: Any) -> None:
+        kwargs.setdefault("status_code", 403)
         super().__init__(message, **kwargs)
 
 
@@ -102,15 +129,23 @@ def _raise_for_status(status_code: int, body: Any) -> None:
         body=body,
     )
 
+    if status_code == 400:
+        raise BadRequestError(message, **kwargs)
     if status_code == 401:
         raise AuthenticationError(message, **kwargs)
     if status_code == 402:
         raise InsufficientBalanceError(message, **kwargs)
+    if status_code == 403:
+        raise PermissionDeniedError(message, **kwargs)
     if status_code == 404:
         raise NotFoundError(message, **kwargs)
     if status_code == 429:
         raise RateLimitError(message, **kwargs)
-    if code and code.startswith("no_provider"):
+    # ``no_provider_*`` always arrives as 503, so this stays reachable below the
+    # status mappings. The isinstance guard is load-bearing: the account face
+    # sends ``code`` as an int (the HTTP status), and ``int.startswith`` would
+    # turn every one of its errors into an AttributeError.
+    if isinstance(code, str) and code.startswith("no_provider"):
         raise ProviderError(message, **kwargs)
 
     raise APIError(message, **kwargs)

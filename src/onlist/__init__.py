@@ -4,17 +4,31 @@ from onlist._client import AsyncOnlist, Onlist
 from onlist._exceptions import (
     APIError,
     AuthenticationError,
+    BadRequestError,
     InsufficientBalanceError,
     NotFoundError,
     OnlistError,
+    PermissionDeniedError,
     ProviderError,
     RateLimitError,
 )
 from onlist._version import __version__
+from onlist.resources.account import (
+    async_exchange_auth_code,
+    exchange_auth_code,
+    generate_pkce,
+)
 from onlist.types import (
+    ActivityRow,
+    APIKey,
     AppEntry,
     AppListResponse,
     ChartPoint,
+    CreatedKey,
+    Credits,
+    CurrentKey,
+    ExchangedKey,
+    Generation,
     MaxPrice,
     Model,
     ModelDetail,
@@ -27,6 +41,7 @@ from onlist.types import (
     ProviderListResponse,
     ProviderOffer,
     ProviderRouting,
+    RateLimit,
 )
 
 __all__ = [
@@ -36,9 +51,11 @@ __all__ = [
     # Exceptions
     "APIError",
     "AuthenticationError",
+    "BadRequestError",
     "InsufficientBalanceError",
     "NotFoundError",
     "OnlistError",
+    "PermissionDeniedError",
     "ProviderError",
     "RateLimitError",
     # Types — Models
@@ -60,6 +77,19 @@ __all__ = [
     # Types — Routing
     "MaxPrice",
     "ProviderRouting",
+    # Types — Account
+    "APIKey",
+    "ActivityRow",
+    "CreatedKey",
+    "Credits",
+    "CurrentKey",
+    "ExchangedKey",
+    "Generation",
+    "RateLimit",
+    # Helpers
+    "async_exchange_auth_code",
+    "exchange_auth_code",
+    "generate_pkce",
     # Meta
     "__version__",
 ]

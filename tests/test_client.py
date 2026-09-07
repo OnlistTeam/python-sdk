@@ -28,10 +28,24 @@ class TestOnlistClient:
         assert hasattr(client.marketplace, "providers")
         assert hasattr(client.marketplace, "rankings")
 
+    def test_has_account_namespaces(self, client: Onlist) -> None:
+        for ns in ("credits", "generations", "api_keys", "activity", "oauth"):
+            assert hasattr(client, ns), ns
+
+    def test_account_base_url_derived(self, client: Onlist) -> None:
+        base = client._account_client.base_url
+        assert "/v1" not in str(base)
+        assert "onlist.io" in str(base)
+
     def test_marketplace_base_url_derived(self, client: Onlist) -> None:
         mkt_base = client.marketplace._client.base_url
         assert "/v1" not in str(mkt_base)
         assert "onlist.io" in str(mkt_base)
+
+    def test_close_closes_account_client(self, api_key: str) -> None:
+        with Onlist(api_key=api_key) as c:
+            assert not c._account_client.is_closed
+        assert c._account_client.is_closed
 
 
 class TestAsyncOnlistClient:
@@ -48,3 +62,8 @@ class TestAsyncOnlistClient:
         assert hasattr(c.marketplace, "models")
         assert hasattr(c.marketplace, "providers")
         assert hasattr(c.marketplace, "rankings")
+
+    def test_has_account_namespaces(self, api_key: str) -> None:
+        c = AsyncOnlist(api_key=api_key)
+        for ns in ("credits", "generations", "api_keys", "activity", "oauth"):
+            assert hasattr(c, ns), ns

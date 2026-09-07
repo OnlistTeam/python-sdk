@@ -8,8 +8,8 @@ client = Onlist(api_key="unused")  # marketplace APIs are mostly public
 print("=== Models ===")
 models = client.marketplace.models.list(limit=5)
 for m in models.data:
-    pricing = m.get("pricing", {})
-    print(f"  {m['id']:40s}  input=${pricing.get('prompt', '?')}/tok")
+    prompt_price = m.pricing.prompt if m.pricing else "?"
+    print(f"  {m.id:40s}  input=${prompt_price}/tok")
 
 # List providers
 print("\n=== Providers ===")

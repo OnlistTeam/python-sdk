@@ -17,7 +17,7 @@ async def main() -> None:
     # Marketplace queries also work async
     models = await client.marketplace.models.list(limit=3)
     for m in models.data:
-        print(f"  {m['id']}")
+        print(f"  {m.id}")
 
     await client.close()
 
