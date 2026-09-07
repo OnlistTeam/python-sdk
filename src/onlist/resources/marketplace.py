@@ -49,8 +49,9 @@ class MarketplaceModels:
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if q:
             params["q"] = q
-        resp = _sync_request(self._client, "GET", "/api/mkt/models", params=params,
-                             max_retries=self._max_retries)
+        resp = _sync_request(
+            self._client, "GET", "/api/mkt/models", params=params, max_retries=self._max_retries
+        )
         return ModelListResponse.model_validate(_parse_response(resp))
 
     def get(self, model_id: str) -> ModelDetail:
@@ -59,9 +60,12 @@ class MarketplaceModels:
         Args:
             model_id: Model identifier, e.g. ``"anthropic/claude-sonnet-4-6"``.
         """
-        resp = _sync_request(self._client, "GET",
-                             f"/api/mkt/models/{_encode_path(model_id)}",
-                             max_retries=self._max_retries)
+        resp = _sync_request(
+            self._client,
+            "GET",
+            f"/api/mkt/models/{_encode_path(model_id)}",
+            max_retries=self._max_retries,
+        )
         data = _parse_response(resp)
         if isinstance(data, dict) and "data" in data:
             data = data["data"]
@@ -92,8 +96,9 @@ class MarketplaceProviders:
             params["sort"] = sort
         if q:
             params["q"] = q
-        resp = _sync_request(self._client, "GET", "/api/mkt/providers", params=params,
-                             max_retries=self._max_retries)
+        resp = _sync_request(
+            self._client, "GET", "/api/mkt/providers", params=params, max_retries=self._max_retries
+        )
         return ProviderListResponse.model_validate(_parse_response(resp))
 
     def get(self, slug: str) -> ProviderDetail:
@@ -102,9 +107,12 @@ class MarketplaceProviders:
         Args:
             slug: Provider slug, e.g. ``"alice-shop"``.
         """
-        resp = _sync_request(self._client, "GET",
-                             f"/api/mkt/provider/{_encode_path(slug)}",
-                             max_retries=self._max_retries)
+        resp = _sync_request(
+            self._client,
+            "GET",
+            f"/api/mkt/provider/{_encode_path(slug)}",
+            max_retries=self._max_retries,
+        )
         data = _parse_response(resp)
         if isinstance(data, dict) and "data" in data:
             data = data["data"]
@@ -140,8 +148,13 @@ class MarketplaceRankings:
             "limit": limit,
             "offset": offset,
         }
-        resp = _sync_request(self._client, "GET", "/api/mkt/rankings/models",
-                             params=params, max_retries=self._max_retries)
+        resp = _sync_request(
+            self._client,
+            "GET",
+            "/api/mkt/rankings/models",
+            params=params,
+            max_retries=self._max_retries,
+        )
         return ModelRankingsResponse.model_validate(_parse_response(resp))
 
     def apps(
@@ -174,8 +187,9 @@ class MarketplaceRankings:
             params["subcategory"] = subcategory
         elif category:
             params["category"] = category
-        resp = _sync_request(self._client, "GET", "/api/mkt/apps", params=params,
-                             max_retries=self._max_retries)
+        resp = _sync_request(
+            self._client, "GET", "/api/mkt/apps", params=params, max_retries=self._max_retries
+        )
         return AppListResponse.model_validate(_parse_response(resp))
 
 
@@ -242,14 +256,18 @@ class AsyncMarketplaceModels:
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if q:
             params["q"] = q
-        resp = await _async_request(self._client, "GET", "/api/mkt/models",
-                                    params=params, max_retries=self._max_retries)
+        resp = await _async_request(
+            self._client, "GET", "/api/mkt/models", params=params, max_retries=self._max_retries
+        )
         return ModelListResponse.model_validate(_parse_response(resp))
 
     async def get(self, model_id: str) -> ModelDetail:
-        resp = await _async_request(self._client, "GET",
-                                    f"/api/mkt/models/{_encode_path(model_id)}",
-                                    max_retries=self._max_retries)
+        resp = await _async_request(
+            self._client,
+            "GET",
+            f"/api/mkt/models/{_encode_path(model_id)}",
+            max_retries=self._max_retries,
+        )
         data = _parse_response(resp)
         if isinstance(data, dict) and "data" in data:
             data = data["data"]
@@ -272,14 +290,18 @@ class AsyncMarketplaceProviders:
             params["sort"] = sort
         if q:
             params["q"] = q
-        resp = await _async_request(self._client, "GET", "/api/mkt/providers",
-                                    params=params, max_retries=self._max_retries)
+        resp = await _async_request(
+            self._client, "GET", "/api/mkt/providers", params=params, max_retries=self._max_retries
+        )
         return ProviderListResponse.model_validate(_parse_response(resp))
 
     async def get(self, slug: str) -> ProviderDetail:
-        resp = await _async_request(self._client, "GET",
-                                    f"/api/mkt/provider/{_encode_path(slug)}",
-                                    max_retries=self._max_retries)
+        resp = await _async_request(
+            self._client,
+            "GET",
+            f"/api/mkt/provider/{_encode_path(slug)}",
+            max_retries=self._max_retries,
+        )
         data = _parse_response(resp)
         if isinstance(data, dict) and "data" in data:
             data = data["data"]
@@ -305,8 +327,13 @@ class AsyncMarketplaceRankings:
             "limit": limit,
             "offset": offset,
         }
-        resp = await _async_request(self._client, "GET", "/api/mkt/rankings/models",
-                                    params=params, max_retries=self._max_retries)
+        resp = await _async_request(
+            self._client,
+            "GET",
+            "/api/mkt/rankings/models",
+            params=params,
+            max_retries=self._max_retries,
+        )
         return ModelRankingsResponse.model_validate(_parse_response(resp))
 
     async def apps(
@@ -329,8 +356,9 @@ class AsyncMarketplaceRankings:
             params["subcategory"] = subcategory
         elif category:
             params["category"] = category
-        resp = await _async_request(self._client, "GET", "/api/mkt/apps",
-                                    params=params, max_retries=self._max_retries)
+        resp = await _async_request(
+            self._client, "GET", "/api/mkt/apps", params=params, max_retries=self._max_retries
+        )
         return AppListResponse.model_validate(_parse_response(resp))
 
 

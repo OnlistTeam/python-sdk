@@ -348,5 +348,6 @@ class TestRetry:
             return_value=httpx.Response(429, json={"error": {"message": "rate limited"}})
         )
         from onlist._exceptions import RateLimitError
+
         with pytest.raises(RateLimitError):
             client.marketplace.providers.list()
