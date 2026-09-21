@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import httpx
 import openai
 
 from onlist import AsyncOnlist, Onlist, __version__
@@ -15,6 +16,16 @@ class TestOnlistClient:
 
     def test_custom_base_url(self, api_key: str) -> None:
         c = Onlist(api_key=api_key, base_url="https://custom.example.com/v1")
+        assert "custom.example.com" in str(c.base_url)
+
+    def test_httpx_url_base_url(self, api_key: str) -> None:
+        """An ``httpx.URL`` must survive the hand-off to openai.
+
+        openai runs on httpx2 while this SDK's own transport runs on httpx, so
+        forwarding the object as-is raised ``TypeError: Invalid type for url``.
+        The signature advertises ``httpx.URL``, so it has to work.
+        """
+        c = Onlist(api_key=api_key, base_url=httpx.URL("https://custom.example.com/v1"))
         assert "custom.example.com" in str(c.base_url)
 
     def test_user_agent_header(self, client: Onlist) -> None:
@@ -55,6 +66,11 @@ class TestAsyncOnlistClient:
     def test_default_base_url(self, api_key: str) -> None:
         c = AsyncOnlist(api_key=api_key)
         assert str(c.base_url).rstrip("/") == BASE_URL
+
+    def test_httpx_url_base_url(self, api_key: str) -> None:
+        """Same httpx / httpx2 hand-off as the sync client. See its twin."""
+        c = AsyncOnlist(api_key=api_key, base_url=httpx.URL("https://custom.example.com/v1"))
+        assert "custom.example.com" in str(c.base_url)
 
     def test_has_marketplace(self, api_key: str) -> None:
         c = AsyncOnlist(api_key=api_key)

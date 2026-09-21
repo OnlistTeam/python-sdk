@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0 (2026-09-21)
+
+### Fixed
+
+- **`base_url` now accepts an `httpx.URL` again.** openai 3.x moved its own HTTP stack to
+  `httpx2`, while this SDK's marketplace and account transport stays on `httpx`. Passing the
+  `httpx.URL` the signature advertises therefore raised
+  `TypeError: Invalid type for url. Expected str or httpx2.URL` when constructing `Onlist` or
+  `AsyncOnlist`. The URL is now normalized to its string form at the hand-off, which both
+  stacks accept. Passing a `str` was never affected.
+
+### Changed
+
+- **Minimum Python is now 3.10** (was 3.9). openai, the package this SDK extends, requires
+  3.10 or newer as of 3.x, so installing on 3.9 silently pinned you to a stale openai 2.x.
+  Python 3.9 reached end of life in October 2025. The `eval_type_backport` dependency, needed
+  only on 3.9, is dropped, and 3.14 is now tested.
+
 ## 0.4.0 (2026-09-21)
 
 ### Added

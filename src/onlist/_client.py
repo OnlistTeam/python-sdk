@@ -101,9 +101,13 @@ class Onlist(openai.OpenAI):
         merged_headers.setdefault("User-Agent", f"onlist-python/{__version__}")
         merged_headers.setdefault("HTTP-Referer", "https://onlist.io")
 
+        # str() rather than forwarding the object: openai's own HTTP stack is
+        # httpx2, while this SDK's marketplace / account transport is httpx.
+        # Handing openai an ``httpx.URL`` raises "Invalid type for url" at
+        # construction, so normalize to the string form both stacks accept.
         super().__init__(
             api_key=resolved_key,
-            base_url=base_url or BASE_URL,
+            base_url=str(base_url) if base_url else BASE_URL,
             default_headers=merged_headers,
             **kwargs,
         )
@@ -191,9 +195,13 @@ class AsyncOnlist(openai.AsyncOpenAI):
         merged_headers.setdefault("User-Agent", f"onlist-python/{__version__}")
         merged_headers.setdefault("HTTP-Referer", "https://onlist.io")
 
+        # str() rather than forwarding the object: openai's own HTTP stack is
+        # httpx2, while this SDK's marketplace / account transport is httpx.
+        # Handing openai an ``httpx.URL`` raises "Invalid type for url" at
+        # construction, so normalize to the string form both stacks accept.
         super().__init__(
             api_key=resolved_key,
-            base_url=base_url or BASE_URL,
+            base_url=str(base_url) if base_url else BASE_URL,
             default_headers=merged_headers,
             **kwargs,
         )

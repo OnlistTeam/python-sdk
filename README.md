@@ -16,6 +16,8 @@ with one line of code.
 pip install onlist
 ```
 
+Requires Python 3.10 or newer.
+
 ## Quick Start
 
 ```python

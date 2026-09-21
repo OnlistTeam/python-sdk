@@ -18,7 +18,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from typing import Any, Union
+from typing import Any
 
 import httpx
 from openai import NOT_GIVEN, NotGiven
@@ -60,11 +60,12 @@ __all__ = [
 
 # Three-state parameters on ``api_keys.update``. ``None`` means "send JSON
 # null" (clear the value); ``NOT_GIVEN`` means "omit the key" (leave it
-# alone). ``Union`` rather than ``X | Y`` because these are runtime values,
-# and the SDK supports Python 3.9.
-_OptionalFloat = Union[float, None, NotGiven]
-_OptionalStr = Union[str, None, NotGiven]
-_OptionalInt = Union[int, None, NotGiven]
+# alone). These are real runtime values, not lazy annotations, so the ``|``
+# form here needs an interpreter that evaluates it — which is why the package
+# floor is Python 3.10.
+_OptionalFloat = float | None | NotGiven
+_OptionalStr = str | None | NotGiven
+_OptionalInt = int | None | NotGiven
 
 
 def generate_pkce() -> tuple[str, str]:
