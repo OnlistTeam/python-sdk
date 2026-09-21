@@ -16,6 +16,7 @@ from onlist.types.model import (
     Pricing,
     ProviderOffer,
     TopProvider,
+    UserModelListResponse,
 )
 from onlist.types.provider import (
     Provider,
@@ -57,4 +58,5 @@ __all__ = [
     "ProviderRouting",
     "RateLimit",
     "TopProvider",
+    "UserModelListResponse",
 ]

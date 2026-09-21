@@ -13,7 +13,7 @@ from onlist._transport import (
     _parse_response,
     _sync_request,
 )
-from onlist.types.model import ModelDetail, ModelListResponse
+from onlist.types.model import ModelDetail, ModelListResponse, UserModelListResponse
 from onlist.types.provider import ProviderDetail, ProviderListResponse
 from onlist.types.rankings import (
     AppListResponse,
@@ -53,6 +53,26 @@ class MarketplaceModels:
             self._client, "GET", "/api/mkt/models", params=params, max_retries=self._max_retries
         )
         return ModelListResponse.model_validate(_parse_response(resp))
+
+    def list_for_user(self) -> UserModelListResponse:
+        """List only the models this client's API key can actually call.
+
+        Wraps ``GET /v1/models/user`` (served at ``/api/v1/models/user``). The
+        response has the same shape as ``client.models.list()`` — the public
+        catalog — filtered by the key's model access list, then by the denied
+        providers of its routing policy, then by its allowed providers. The
+        allowed-provider filter applies even when the key falls back to every
+        provider once its allowlist is exhausted: the list states intent, the
+        fallback is a runtime safety net. ``zdr`` / ``data_collection`` are
+        per-request parameters and never narrow it.
+
+        Intended for a program holding one specific key, e.g. the model picker of
+        an IDE agent. An unknown or revoked key raises ``AuthenticationError``.
+        """
+        resp = _sync_request(
+            self._client, "GET", "/api/v1/models/user", max_retries=self._max_retries
+        )
+        return UserModelListResponse.model_validate(_parse_response(resp))
 
     def get(self, model_id: str) -> ModelDetail:
         """Get detailed info for a model, including all provider offers.
@@ -260,6 +280,26 @@ class AsyncMarketplaceModels:
             self._client, "GET", "/api/mkt/models", params=params, max_retries=self._max_retries
         )
         return ModelListResponse.model_validate(_parse_response(resp))
+
+    async def list_for_user(self) -> UserModelListResponse:
+        """List only the models this client's API key can actually call.
+
+        Wraps ``GET /v1/models/user`` (served at ``/api/v1/models/user``). The
+        response has the same shape as ``client.models.list()`` — the public
+        catalog — filtered by the key's model access list, then by the denied
+        providers of its routing policy, then by its allowed providers. The
+        allowed-provider filter applies even when the key falls back to every
+        provider once its allowlist is exhausted: the list states intent, the
+        fallback is a runtime safety net. ``zdr`` / ``data_collection`` are
+        per-request parameters and never narrow it.
+
+        Intended for a program holding one specific key, e.g. the model picker of
+        an IDE agent. An unknown or revoked key raises ``AuthenticationError``.
+        """
+        resp = await _async_request(
+            self._client, "GET", "/api/v1/models/user", max_retries=self._max_retries
+        )
+        return UserModelListResponse.model_validate(_parse_response(resp))
 
     async def get(self, model_id: str) -> ModelDetail:
         resp = await _async_request(

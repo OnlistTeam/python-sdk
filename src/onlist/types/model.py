@@ -62,6 +62,19 @@ class ModelDetail(Model):
     model_config = {"extra": "allow"}
 
 
+class UserModelListResponse(BaseModel):
+    """Response from ``marketplace.models.list_for_user()`` (``GET /v1/models/user``).
+
+    Same entry shape as the public catalog (``client.models.list()``), not the
+    paginated marketplace envelope.
+    """
+
+    object: str = "list"
+    data: list[Model] = Field(default_factory=list)
+
+    model_config = {"extra": "allow"}
+
+
 class ModelListResponse(BaseModel):
     """Response from ``marketplace.models.list()``."""
 

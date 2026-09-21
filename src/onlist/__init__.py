@@ -42,6 +42,7 @@ from onlist.types import (
     ProviderOffer,
     ProviderRouting,
     RateLimit,
+    UserModelListResponse,
 )
 
 __all__ = [
@@ -64,6 +65,7 @@ __all__ = [
     "ModelListResponse",
     "Pricing",
     "ProviderOffer",
+    "UserModelListResponse",
     # Types — Providers
     "Provider",
     "ProviderDetail",

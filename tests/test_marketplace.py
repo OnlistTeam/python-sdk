@@ -6,7 +6,7 @@ import respx
 
 from onlist import Onlist
 from onlist._exceptions import APIError, AuthenticationError, NotFoundError
-from onlist.types.model import Model, ModelListResponse
+from onlist.types.model import Model, ModelListResponse, UserModelListResponse
 from onlist.types.provider import ProviderListResponse
 from onlist.types.rankings import AppListResponse, ModelRankingsResponse
 
@@ -182,6 +182,50 @@ class TestMarketplaceModels:
         assert detail.id == "anthropic/claude-sonnet-4"
         assert len(detail.providers) == 2
         assert detail.providers[0].slug == "alice-shop"
+
+
+class TestMarketplaceUserModels:
+    @respx.mock
+    def test_list_for_user(self, client: Onlist, api_key: str) -> None:
+        route = respx.get("https://onlist.io/api/v1/models/user").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "object": "list",
+                    "data": [
+                        {
+                            "id": "openai/gpt-4o",
+                            "name": "OpenAI: GPT-4o",
+                            "context_length": 128000,
+                        }
+                    ],
+                },
+            )
+        )
+        result = client.marketplace.models.list_for_user()
+        assert isinstance(result, UserModelListResponse)
+        assert result.object == "list"
+        assert len(result.data) == 1
+        assert isinstance(result.data[0], Model)
+        assert result.data[0].id == "openai/gpt-4o"
+        assert route.calls[0].request.headers["Authorization"] == f"Bearer {api_key}"
+
+    @respx.mock
+    def test_list_for_user_empty(self, client: Onlist) -> None:
+        respx.get("https://onlist.io/api/v1/models/user").mock(
+            return_value=httpx.Response(200, json={"object": "list", "data": []})
+        )
+        assert client.marketplace.models.list_for_user().data == []
+
+    @respx.mock
+    def test_list_for_user_auth_error(self, client: Onlist) -> None:
+        respx.get("https://onlist.io/api/v1/models/user").mock(
+            return_value=httpx.Response(
+                401, json={"error": {"code": 401, "message": "Invalid credentials"}}
+            )
+        )
+        with pytest.raises(AuthenticationError):
+            client.marketplace.models.list_for_user()
 
 
 class TestMarketplaceProviders:

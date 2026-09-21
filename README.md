@@ -196,6 +196,17 @@ provider = client.marketplace.providers.get("alice-shop")
 print(f"{provider.display_name} - {provider.model_count} models")
 ```
 
+To list only what your key can call, use `GET /v1/models/user` — the authenticated sibling of
+`client.models.list()`. Handy for a model picker: the key's model access list and the
+allow/deny of providers in its routing policy are applied server-side, so nothing in the
+dropdown can come back as a `403`.
+
+```python
+mine = client.marketplace.models.list_for_user()
+for m in mine.data:
+    print(m.id)
+```
+
 ## Rankings API
 
 View model usage rankings and app usage data:

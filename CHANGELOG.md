@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 (2026-09-21)
+
+### Added
+- `marketplace.models.list_for_user()` (and the `AsyncOnlist` mirror) — `GET /v1/models/user`,
+  the OpenRouter-aligned authenticated catalog. Returns the same entry shape as
+  `client.models.list()`, filtered to what the client's API key can actually call: its model
+  access list, then the denied providers of its routing policy, then its allowed providers.
+  The allowed-provider filter applies even when the key falls back to every provider once its
+  allowlist is exhausted. Built for a model picker holding one specific key.
+- `UserModelListResponse` type (`object` + `data`), exported from the top-level package.
+
 ## 0.3.0 (2026-09-07)
 
 ### Added
